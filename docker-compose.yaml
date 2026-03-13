@@ -1,0 +1,28 @@
+services:
+  app:
+    container_name: diploma_twitter_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    stop_signal: SIGTERM
+    ports:
+      - "8000:8000"
+    networks:
+      - my_twitter_network
+
+  nginx_web:
+    container_name: nginx_web
+    image: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./static:/usr/share/nginx/html
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+    networks:
+      - my_twitter_network
+networks:
+  my_twitter_network:
+    driver: bridge
