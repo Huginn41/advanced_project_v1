@@ -4,7 +4,7 @@ from typing import List, Union
 from sqlalchemy import Integer, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 
-
+s
 class Base(DeclarativeBase):
     pass
 
@@ -16,26 +16,26 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     api_key: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
 
-    followers: Mapped[List] = relationship(
-        "Subs",
-        foreign_keys="Subs.follower_id",
-        back_populates="follower",
-        lazy="joined",
-        cascade="all, delete-orphan",
-    )
-
-    followings: Mapped[List] = relationship(
+    followers: Mapped[List["Subs"]] = relationship(
         "Subs",
         foreign_keys="Subs.following_id",
         back_populates="following",
-        lazy="joined",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
+
+    followings: Mapped[List["Subs"]] = relationship(
+        "Subs",
+        foreign_keys="Subs.follower_id",
+        back_populates="follower",
+        lazy="selectin",
         cascade="all, delete-orphan",
     )
     tweets: Mapped[List["Tweet"]] = relationship(
-        "Tweet", back_populates="author", lazy="joined", cascade="all, delete-orphan"
+        "Tweet", back_populates="author", lazy="selectin", cascade="all, delete-orphan"
     )
     likes: Mapped[List["Like"]] = relationship(
-        "Like", back_populates="author", lazy="joined", cascade="all, delete-orphan"
+        "Like", back_populates="author", lazy="selectin", cascade="all, delete-orphan"
     )
 
 
@@ -53,18 +53,16 @@ class Subs(Base):
 
     follower: Mapped["User"] = relationship(
         "User",
-        foreign_keys=following_id,
-        lazy="joined",
-        back_populates="followers",
-        # overlaps="followers",
+        foreign_keys=[follower_id],
+        lazy="selectin",
+        back_populates="followings",
     )
 
     following: Mapped["User"] = relationship(
         "User",
-        foreign_keys=follower_id,
-        lazy="joined",
-        back_populates="followings",
-        # overlaps="followers",
+        foreign_keys=[following_id],
+        lazy="selectin",
+        back_populates="followers",
     )
 
 
@@ -73,17 +71,17 @@ class Tweet(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     content: Mapped[str] = mapped_column(String(300), nullable=False)
-    attachments: Mapped[List["Media"]] = relationship("Media", back_populates="tweet")
+    attachments: Mapped[List["Media"]] = relationship("Media", back_populates="tweet", lazy="selectin")
 
     author_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("user.id", ondelete="cascade")
     )
     author: Mapped["User"] = relationship(
-        "User", back_populates="tweets", lazy="joined"
+        "User", back_populates="tweets", lazy="selectin"
     )
     likes: Mapped[List["Like"]] = relationship(
-        "Like", back_populates="tweet", lazy="joined"
+        "Like", back_populates="tweet", lazy="selectin"
     )
 
 
@@ -98,7 +96,7 @@ class Media(Base):
     )
     tweet: Mapped["Tweet"] = relationship(
         "Tweet",
-        lazy="joined",
+        lazy="selectin",
         back_populates="attachments"
     )
 
@@ -117,12 +115,12 @@ class Like(Base):
     author: Mapped["User"] = relationship(
         "User",
         back_populates="likes",
-        lazy="joined",
+        lazy="selectin",
         foreign_keys=user_id
     )
     tweet: Mapped["Tweet"] = relationship(
         "Tweet",
         back_populates="likes",
-        lazy="joined",
+        lazy="selectin",
         foreign_keys=tweet_id
     )
