@@ -1,20 +1,25 @@
 import uvicorn
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+from database import init_models
+from routes import router
 
 
-@app.get("/api/users/me")
-async def get_info_me():
-    return {
-        "result": "true",
-        "user": {
-            "id": 1,
-            "name": "Name Namenov",
-            "following": [{"id": 2, "name": "Name2"}, {"id": 3, "name": "Name3"}],
-            "followers": [{"id": 4, "name": "Name2"}, {"id": 5, "name": "Name3"}],
-        },
-    }
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_models()
+    yield
+
+
+app = FastAPI(
+    title="Twitter Clone API",
+    description="Microblogging service API",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+app.include_router(router)
 
 
 if __name__ == "__main__":

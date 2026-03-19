@@ -1,4 +1,21 @@
 services:
+  db:
+    container_name: diploma_twitter_db
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: twitter_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - my_twitter_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   app:
     container_name: diploma_twitter_app
     build:
@@ -7,6 +24,11 @@ services:
     stop_signal: SIGTERM
     ports:
       - "8000:8000"
+    volumes:
+      - uploads:/home/static/images
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - my_twitter_network
 
@@ -16,6 +38,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./static:/usr/share/nginx/html
+      - uploads:/usr/share/nginx/html/images
     restart: always
     ports:
       - "80:80"
@@ -23,6 +46,11 @@ services:
       - app
     networks:
       - my_twitter_network
+
+volumes:
+  postgres_data:
+  uploads:
+
 networks:
   my_twitter_network:
     driver: bridge
