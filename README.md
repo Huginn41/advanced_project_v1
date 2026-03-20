@@ -99,3 +99,20 @@ pytest -v
 ├── nginx.conf
 └── requirements.txt
 ```
+
+## Сохранение данных
+ 
+По умолчанию `init_models()` вызывает `drop_all` при каждом старте — все данные удаляются. Это удобно для разработки, но не подходит для продакшена.
+ 
+Чтобы данные сохранялись между перезапусками, закомментируйте строку `drop_all` в `src/database.py`:
+ 
+```python
+async def init_models() -> None:
+    async with engine.begin() as conn:
+        # await conn.run_sync(Base.metadata.drop_all)  # удалить эту строку
+        await conn.run_sync(Base.metadata.create_all)
+```
+ 
+После этого `create_all` будет создавать таблицы только если их ещё нет, не трогая существующие данные. Данные PostgreSQL хранятся в Docker volume `postgres_data` и переживают перезапуск контейнеров.
+ 
+> Тестовых пользователей (Alice, Bob, Charlie) в этом случае нужно создать вручную через Swagger (`http://localhost:8000/docs`) или напрямую в БД.
