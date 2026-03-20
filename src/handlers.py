@@ -1,5 +1,7 @@
+import os
 import uuid
 from pathlib import Path
+from typing import List, Optional
 
 import aiofiles
 from fastapi import HTTPException, UploadFile
@@ -11,8 +13,11 @@ from models import Like, Media, Subs, Tweet, User
 from schemas.tweets import LikeInfo, TweetOut
 from schemas.users import UserProfile, UserShort
 
+UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "/home/static/images"))
+
 
 def build_user_profile(user: User) -> UserProfile:
+
     followers = [
         UserShort(id=sub.follower.id, name=sub.follower.name)
         for sub in user.followers
@@ -21,10 +26,16 @@ def build_user_profile(user: User) -> UserProfile:
         UserShort(id=sub.following.id, name=sub.following.name)
         for sub in user.followings
     ]
-    return UserProfile(id=user.id, name=user.name, followers=followers, following=following)
+    return UserProfile(
+        id=user.id,
+        name=user.name,
+        followers=followers,
+        following=following,
+    )
 
 
 def build_tweet_out(tweet: Tweet) -> TweetOut:
+
     return TweetOut(
         id=tweet.id,
         content=tweet.content,
@@ -37,7 +48,8 @@ def build_tweet_out(tweet: Tweet) -> TweetOut:
     )
 
 
-def _user_options():
+def _user_options() -> list:
+
     return [
         selectinload(User.followers).selectinload(Subs.follower),
         selectinload(User.followings).selectinload(Subs.following),
@@ -45,6 +57,7 @@ def _user_options():
 
 
 async def get_user_by_api_key(api_key: str, session: AsyncSession) -> User:
+
     result = await session.execute(
         select(User).where(User.api_key == api_key).options(*_user_options())
     )
@@ -55,6 +68,7 @@ async def get_user_by_api_key(api_key: str, session: AsyncSession) -> User:
 
 
 async def get_user_by_id(user_id: int, session: AsyncSession) -> User:
+
     result = await session.execute(
         select(User).where(User.id == user_id).options(*_user_options())
     )
@@ -67,9 +81,10 @@ async def get_user_by_id(user_id: int, session: AsyncSession) -> User:
 async def create_tweet(
         user: User,
         tweet_data: str,
-        media_ids: list[int] | None,
+        media_ids: Optional[List[int]],
         session: AsyncSession,
 ) -> int:
+
     tweet = Tweet(content=tweet_data, author_id=user.id)
     session.add(tweet)
     await session.flush()
@@ -86,6 +101,7 @@ async def create_tweet(
 
 
 async def delete_tweet(user: User, tweet_id: int, session: AsyncSession) -> None:
+
     result = await session.execute(select(Tweet).where(Tweet.id == tweet_id))
     tweet = result.unique().scalar_one_or_none()
     if tweet is None:
@@ -96,7 +112,8 @@ async def delete_tweet(user: User, tweet_id: int, session: AsyncSession) -> None
     await session.commit()
 
 
-async def get_feed(user: User, session: AsyncSession) -> list[TweetOut]:
+async def get_feed(user: User, session: AsyncSession) -> List[TweetOut]:
+
     result = await session.execute(select(Tweet))
     tweets = list(result.scalars().unique().all())
     tweets.sort(key=lambda t: len(t.likes), reverse=True)
@@ -104,6 +121,7 @@ async def get_feed(user: User, session: AsyncSession) -> list[TweetOut]:
 
 
 async def like_tweet(user: User, tweet_id: int, session: AsyncSession) -> None:
+
     tweet = await session.get(Tweet, tweet_id)
     if tweet is None:
         raise HTTPException(status_code=404, detail="Tweet not found")
@@ -119,6 +137,7 @@ async def like_tweet(user: User, tweet_id: int, session: AsyncSession) -> None:
 
 
 async def unlike_tweet(user: User, tweet_id: int, session: AsyncSession) -> None:
+
     result = await session.execute(
         select(Like).where(Like.tweet_id == tweet_id, Like.user_id == user.id)
     )
@@ -130,6 +149,7 @@ async def unlike_tweet(user: User, tweet_id: int, session: AsyncSession) -> None
 
 
 async def follow_user(user: User, target_id: int, session: AsyncSession) -> None:
+
     if user.id == target_id:
         raise HTTPException(status_code=400, detail="Cannot follow yourself")
 
@@ -138,7 +158,10 @@ async def follow_user(user: User, target_id: int, session: AsyncSession) -> None
         raise HTTPException(status_code=404, detail="User not found")
 
     existing = await session.execute(
-        select(Subs).where(Subs.follower_id == user.id, Subs.following_id == target_id)
+        select(Subs).where(
+            Subs.follower_id == user.id,
+            Subs.following_id == target_id,
+        )
     )
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Already following")
@@ -148,8 +171,12 @@ async def follow_user(user: User, target_id: int, session: AsyncSession) -> None
 
 
 async def unfollow_user(user: User, target_id: int, session: AsyncSession) -> None:
+
     result = await session.execute(
-        select(Subs).where(Subs.follower_id == user.id, Subs.following_id == target_id)
+        select(Subs).where(
+            Subs.follower_id == user.id,
+            Subs.following_id == target_id,
+        )
     )
     sub = result.scalar_one_or_none()
     if sub is None:
@@ -158,10 +185,8 @@ async def unfollow_user(user: User, target_id: int, session: AsyncSession) -> No
     await session.commit()
 
 
-UPLOAD_DIR = Path("/home/static/images")
-
-
 async def upload_media(file: UploadFile, session: AsyncSession) -> int:
+
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
     ext = Path(file.filename).suffix if file.filename else ""
