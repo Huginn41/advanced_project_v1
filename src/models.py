@@ -1,16 +1,17 @@
 
+
 from typing import List, Union
 
 from sqlalchemy import Integer, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 
-s
+
 class Base(DeclarativeBase):
     pass
 
 
 class User(Base):
-    __tablename__ = 'user'
+    __tablename__ = "user"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -23,7 +24,6 @@ class User(Base):
         lazy="selectin",
         cascade="all, delete-orphan",
     )
-
     followings: Mapped[List["Subs"]] = relationship(
         "Subs",
         foreign_keys="Subs.follower_id",
@@ -32,23 +32,32 @@ class User(Base):
         cascade="all, delete-orphan",
     )
     tweets: Mapped[List["Tweet"]] = relationship(
-        "Tweet", back_populates="author", lazy="selectin", cascade="all, delete-orphan"
+        "Tweet",
+        back_populates="author",
+        lazy="selectin",
+        cascade="all, delete-orphan",
     )
     likes: Mapped[List["Like"]] = relationship(
-        "Like", back_populates="author", lazy="selectin", cascade="all, delete-orphan"
+        "Like",
+        back_populates="author",
+        lazy="selectin",
+        cascade="all, delete-orphan",
     )
 
 
 class Subs(Base):
+
+
     __tablename__ = "subs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     follower_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("user.id", ondelete="cascade"))
+        ForeignKey("user.id", ondelete="cascade"),
+    )
     following_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("user.id", ondelete="cascade")
+        ForeignKey("user.id", ondelete="cascade"),
     )
 
     follower: Mapped["User"] = relationship(
@@ -57,7 +66,6 @@ class Subs(Base):
         lazy="selectin",
         back_populates="followings",
     )
-
     following: Mapped["User"] = relationship(
         "User",
         foreign_keys=[following_id],
@@ -67,60 +75,73 @@ class Subs(Base):
 
 
 class Tweet(Base):
+
     __tablename__ = "tweet"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     content: Mapped[str] = mapped_column(String(300), nullable=False)
-    attachments: Mapped[List["Media"]] = relationship("Media", back_populates="tweet", lazy="selectin")
-
+    attachments: Mapped[List["Media"]] = relationship(
+        "Media",
+        back_populates="tweet",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
     author_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("user.id", ondelete="cascade")
+        ForeignKey("user.id", ondelete="cascade"),
     )
     author: Mapped["User"] = relationship(
-        "User", back_populates="tweets", lazy="selectin"
+        "User",
+        back_populates="tweets",
+        lazy="selectin",
     )
     likes: Mapped[List["Like"]] = relationship(
-        "Like", back_populates="tweet", lazy="selectin"
+        "Like",
+        back_populates="tweet",
+        lazy="selectin",
+        cascade="all, delete-orphan",
     )
 
 
 class Media(Base):
+
     __tablename__ = "media"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-
     tweet_id: Mapped[Union[int, None]] = mapped_column(
-        Integer, ForeignKey("tweet.id", ondelete="cascade")
+        Integer,
+        ForeignKey("tweet.id", ondelete="cascade"),
     )
     tweet: Mapped["Tweet"] = relationship(
         "Tweet",
         lazy="selectin",
-        back_populates="attachments"
+        back_populates="attachments",
     )
 
 
 class Like(Base):
+
     __tablename__ = "like"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     tweet_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("tweet.id", ondelete="cascade")
+        Integer,
+        ForeignKey("tweet.id", ondelete="cascade"),
     )
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("user.id", ondelete="cascade")
+        Integer,
+        ForeignKey("user.id", ondelete="cascade"),
     )
-
     author: Mapped["User"] = relationship(
         "User",
         back_populates="likes",
         lazy="selectin",
-        foreign_keys=user_id
+        foreign_keys=[user_id],
     )
     tweet: Mapped["Tweet"] = relationship(
         "Tweet",
         back_populates="likes",
         lazy="selectin",
-        foreign_keys=tweet_id
+        foreign_keys=[tweet_id],
     )

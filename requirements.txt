@@ -8,3 +8,9 @@ fastapi-cli==0.0.24
 fastapi-cloud-cli==0.13.0
 asyncpg==0.31.0
 python-multipart==0.0.20
+
+pytest==8.3.5
+pytest-asyncio==0.24.0
+httpx==0.28.1
+aiosqlite==0.20.0
+anyio[trio]
