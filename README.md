@@ -1,6 +1,19 @@
 # Сервис микроблогов
 
-REST API корпоративного сервиса микроблогов, построенный на **FastAPI** + **PostgreSQL**. Раздаётся через **Nginx**, полностью контейнеризован.
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
+![Tests](https://img.shields.io/badge/coverage-pytest--asyncio-green)
+
+REST API корпоративного сервиса микроблогов с системой подписок, 
+лайков и медиафайлов. Построен на **FastAPI** + **PostgreSQL**, 
+раздаётся через **Nginx**, полностью контейнеризован.
+
+**Архитектурные решения:**
+- Async SQLAlchemy 2 с каскадными связями
+- Тесты на изолированной SQLite in-memory БД — PostgreSQL для тестов не нужен
+- Единый формат ошибок во всех эндпоинтах
+- Скомпилированный Vue.js фронтенд раздаётся через Nginx
 
 ## Стек
 
